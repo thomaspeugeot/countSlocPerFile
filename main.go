@@ -7,8 +7,14 @@ import (
 	"go/parser"
 	"go/token"
 	"os"
+	"sort"
 	"strings"
 )
+
+type FuncSLOC struct {
+	Name string
+	SLOC int
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -46,6 +52,7 @@ func main() {
 	}
 
 	// Traverse the AST and count SLOC per function
+	var funcs []FuncSLOC
 	ast.Inspect(node, func(n ast.Node) bool {
 		switch fn := n.(type) {
 		case *ast.FuncDecl:
@@ -53,10 +60,20 @@ func main() {
 			end := fs.Position(fn.End()).Line - 1
 			sloc := countSLOC(lines[start:end])
 
-			fmt.Printf("Function %s has %d SLOC\n", fn.Name.Name, sloc)
+			funcs = append(funcs, FuncSLOC{Name: fn.Name.Name, SLOC: sloc})
 		}
 		return true
 	})
+
+	// Sort functions by ascending SLOC
+	sort.Slice(funcs, func(i, j int) bool {
+		return funcs[i].SLOC < funcs[j].SLOC
+	})
+
+	// Print sorted results
+	for _, fn := range funcs {
+		fmt.Printf("Function %s has %d SLOC\n", fn.Name, fn.SLOC)
+	}
 }
 
 func countSLOC(lines []string) int {
